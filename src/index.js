@@ -65,7 +65,14 @@ class PrintAgent {
 
     connect() {
         const settings = this.config.getSettings();
-        const wsUrl = settings.serverUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+        let wsUrl = settings.serverUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+
+        // Asegurar que el path incluye /api si el servidor usa context-path
+        // Soporta ambos formatos: "https://server.com" y "https://server.com/api"
+        if (!wsUrl.endsWith('/api')) {
+            wsUrl = wsUrl.replace(/\/$/, '') + '/api';
+        }
+
         const fullUrl = `${wsUrl}/ws/print-agent?restaurantId=${settings.restaurantId}&apiKey=${settings.apiKey}`;
 
         console.log(chalk.yellow('\nConectando al servidor...'));
