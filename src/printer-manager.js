@@ -577,6 +577,107 @@ class PrinterManager {
         this.defaultPrinter = null;
     }
 
+    /**
+     * Descubrir impresoras disponibles en el sistema Windows
+     * @returns {Promise<Array>} Lista de impresoras descubiertas
+     */
+    async discoverPrinters() {
+        const discovered = [];
+
+        // 1. Descubrir impresoras de Windows
+        try {
+            const windowsPrinters = await this.discoverWindowsPrinters();
+            discovered.push(...windowsPrinters);
+        } catch (error) {
+            console.log(chalk.yellow(`   Error descubriendo impresoras Windows: ${error.message}`));
+        }
+
+        return discovered;
+    }
+
+    /**
+     * Descubrir impresoras instaladas en Windows usando PowerShell
+     */
+    async discoverWindowsPrinters() {
+        return new Promise((resolve, reject) => {
+            // Obtener lista de impresoras con información detallada
+            const psCommand = `
+                Get-Printer | Select-Object Name, DriverName, PortName, PrinterStatus, Type, Shared, Published |
+                ConvertTo-Json -Compress
+            `.trim().replace(/\n/g, ' ');
+
+            exec(`powershell -Command "${psCommand}"`, { timeout: 10000 }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(`PowerShell error: ${error.message}`));
+                    return;
+                }
+
+                try {
+                    let printers = [];
+                    const output = stdout.trim();
+
+                    if (output) {
+                        const parsed = JSON.parse(output);
+                        // PowerShell devuelve objeto si es 1, array si son varios
+                        printers = Array.isArray(parsed) ? parsed : [parsed];
+                    }
+
+                    const discovered = printers.map(p => ({
+                        name: p.Name,
+                        type: 'windows',
+                        windowsName: p.Name,
+                        driverName: p.DriverName,
+                        portName: p.PortName,
+                        status: this.mapPrinterStatus(p.PrinterStatus),
+                        printerType: p.Type, // Local, Connection, etc.
+                        shared: p.Shared,
+                        available: p.PrinterStatus === 0 || p.PrinterStatus === 3, // Normal or Idle
+                    }));
+
+                    console.log(chalk.gray(`   Encontradas ${discovered.length} impresoras Windows`));
+                    resolve(discovered);
+                } catch (parseError) {
+                    reject(new Error(`Error parseando respuesta: ${parseError.message}`));
+                }
+            });
+        });
+    }
+
+    /**
+     * Mapear código de estado de Windows a texto legible
+     */
+    mapPrinterStatus(statusCode) {
+        const statusMap = {
+            0: 'Normal',
+            1: 'Paused',
+            2: 'Error',
+            3: 'Pending Deletion',
+            4: 'Paper Jam',
+            5: 'Paper Out',
+            6: 'Manual Feed',
+            7: 'Paper Problem',
+            8: 'Offline',
+            9: 'IO Active',
+            10: 'Busy',
+            11: 'Printing',
+            12: 'Output Bin Full',
+            13: 'Not Available',
+            14: 'Waiting',
+            15: 'Processing',
+            16: 'Initializing',
+            17: 'Warming Up',
+            18: 'Toner Low',
+            19: 'No Toner',
+            20: 'Page Punt',
+            21: 'User Intervention',
+            22: 'Out of Memory',
+            23: 'Door Open',
+            24: 'Server Unknown',
+            25: 'Power Save',
+        };
+        return statusMap[statusCode] || 'Unknown';
+    }
+
     async initialize(printerConfigs) {
         console.log(chalk.yellow('\nInicializando impresoras...'));
         this.printers.clear();

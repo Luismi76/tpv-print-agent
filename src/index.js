@@ -131,6 +131,10 @@ class PrintAgent {
                     this.handlePrinterTest(message.payload);
                     break;
 
+                case 'DISCOVER_PRINTERS':
+                    this.handleDiscoverPrinters(message.payload);
+                    break;
+
                 default:
                     console.log(chalk.gray(`Mensaje desconocido: ${message.type}`));
             }
@@ -243,6 +247,38 @@ class PrintAgent {
         }
 
         console.log(chalk.green('✓ Configuración actualizada'));
+    }
+
+    async handleDiscoverPrinters(payload) {
+        console.log(chalk.yellow('\n🔍 Descubriendo impresoras disponibles...'));
+
+        try {
+            const discovered = await this.printerManager.discoverPrinters();
+
+            console.log(chalk.green(`✓ Encontradas ${discovered.length} impresoras`));
+
+            // Enviar resultado al servidor
+            this.sendMessage({
+                type: 'DISCOVER_RESULT',
+                payload: {
+                    printers: discovered,
+                    timestamp: Date.now(),
+                    requestId: payload?.requestId
+                }
+            });
+
+        } catch (error) {
+            console.error(chalk.red(`✗ Error descubriendo impresoras: ${error.message}`));
+            this.sendMessage({
+                type: 'DISCOVER_RESULT',
+                payload: {
+                    printers: [],
+                    error: error.message,
+                    timestamp: Date.now(),
+                    requestId: payload?.requestId
+                }
+            });
+        }
     }
 
     sendPrinterStatus() {
