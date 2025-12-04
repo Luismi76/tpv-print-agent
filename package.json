@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Agente de impresión local para TPV SaaS - Conecta impresoras locales con el backend en la nube",
   "main": "src/index.js",
+  "bin": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
