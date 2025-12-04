@@ -73,7 +73,8 @@ class PrintAgent {
             wsUrl = wsUrl.replace(/\/$/, '') + '/api';
         }
 
-        const fullUrl = `${wsUrl}/ws/print-agent?restaurantId=${settings.restaurantId}&apiKey=${settings.apiKey}`;
+        // Usar /print-agent-ws (NO /ws/print-agent porque SockJS captura /ws/**)
+        const fullUrl = `${wsUrl}/print-agent-ws?restaurantId=${settings.restaurantId}&apiKey=${settings.apiKey}`;
 
         console.log(chalk.yellow('\nConectando al servidor...'));
 
