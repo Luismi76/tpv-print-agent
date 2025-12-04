@@ -35,16 +35,11 @@
       <ComponentRef Id="StartupShortcut" />
     </Feature>
 
-    <!-- UI Configuration -->
-    <UIRef Id="WixUI_InstallDir" />
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <!-- UI Configuration - Minimal UI -->
+    <UIRef Id="WixUI_Minimal" />
 
     <!-- License -->
     <WixVariable Id="WixUILicenseRtf" Value="installer\wix\License.rtf" />
-
-    <!-- Banner and dialog images -->
-    <WixVariable Id="WixUIBannerBmp" Value="installer\wix\banner.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="installer\wix\dialog.bmp" />
 
     <!-- Icon for Add/Remove Programs -->
     <Icon Id="AppIcon.exe" SourceFile="dist\tpv-print-agent.exe" />
