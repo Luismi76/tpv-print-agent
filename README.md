@@ -1,14 +1,14 @@
 # TPV Print Agent
 
-[![Release](https://img.shields.io/github/v/release/lmsc-es/tpv-print-agent?style=flat-square)](https://github.com/lmsc-es/tpv-print-agent/releases)
+[![Release](https://img.shields.io/github/v/release/Luismi76/tpv-print-agent?style=flat-square)](https://github.com/Luismi76/tpv-print-agent/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Windows](https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows)](https://github.com/lmsc-es/tpv-print-agent/releases)
+[![Windows](https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows)](https://github.com/Luismi76/tpv-print-agent/releases)
 
 Agente de impresión local para el sistema TPV SaaS. Permite conectar impresoras locales (red y USB) del restaurante con el backend en la nube.
 
 ## Descarga
 
-**[Descargar ultima version](https://github.com/lmsc-es/tpv-print-agent/releases/latest)**
+**[Descargar ultima version](https://github.com/Luismi76/tpv-print-agent/releases/latest)**
 
 | Archivo | Descripcion |
 |---------|-------------|
