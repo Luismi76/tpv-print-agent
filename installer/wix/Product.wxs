@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TPV Print Agent - WiX Installer Configuration
+  Genera un instalador MSI profesional para Windows
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="TPV Print Agent"
+    Language="3082"
+    Version="1.0.0.0"
+    Manufacturer="LMSC"
+    UpgradeCode="8E5F8B9A-1234-5678-9ABC-DEF012345678">
+
+    <Package
+      InstallerVersion="200"
+      Compressed="yes"
+      InstallScope="perMachine"
+      Description="Agente de impresion local para TPV SaaS"
+      Comments="Conecta impresoras locales con el backend en la nube"
+      Manufacturer="LMSC" />
+
+    <!-- Upgrade logic -->
+    <MajorUpgrade
+      DowngradeErrorMessage="Ya existe una version mas reciente de TPV Print Agent instalada."
+      AllowSameVersionUpgrades="yes" />
+
+    <!-- Embed cabinet for single MSI file -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="TPV Print Agent" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="StartupShortcut" />
+    </Feature>
+
+    <!-- UI Configuration -->
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- License -->
+    <WixVariable Id="WixUILicenseRtf" Value="installer\wix\License.rtf" />
+
+    <!-- Banner and dialog images -->
+    <WixVariable Id="WixUIBannerBmp" Value="installer\wix\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="installer\wix\dialog.bmp" />
+
+    <!-- Icon for Add/Remove Programs -->
+    <Icon Id="AppIcon.exe" SourceFile="dist\tpv-print-agent.exe" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.exe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://lmsc.es" />
+    <Property Id="ARPHELPLINK" Value="https://lmsc.es/soporte" />
+
+    <!-- Custom Actions -->
+    <CustomAction Id="LaunchApplication" FileKey="MainExecutable" ExeCommand="" Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApplication" After="InstallFinalize">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+  </Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- Program Files -->
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="TPV Print Agent" />
+      </Directory>
+
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="TPV Print Agent" />
+      </Directory>
+
+      <!-- Startup folder for auto-start -->
+      <Directory Id="StartupFolder" />
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Main executable -->
+      <Component Id="MainExecutable" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+        <File Id="MainExecutable" Source="dist\tpv-print-agent.exe" KeyPath="yes">
+          <Shortcut Id="DesktopShortcut"
+                    Directory="DesktopFolder"
+                    Name="TPV Print Agent"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon.exe"
+                    IconIndex="0"
+                    Advertise="yes" />
+        </File>
+      </Component>
+
+      <!-- README -->
+      <Component Id="ReadmeComponent" Guid="B2C3D4E5-F6A7-8901-BCDE-F23456789012">
+        <File Id="Readme" Source="README.md" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu shortcuts -->
+    <ComponentGroup Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="C3D4E5F6-A7B8-9012-CDEF-345678901234">
+        <Shortcut Id="StartMenuShortcut"
+                  Name="TPV Print Agent"
+                  Description="Agente de impresion para TPV"
+                  Target="[INSTALLFOLDER]tpv-print-agent.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon.exe" />
+
+        <Shortcut Id="ConfigureShortcut"
+                  Name="Configurar TPV Print Agent"
+                  Description="Configurar impresoras y servidor"
+                  Target="[INSTALLFOLDER]tpv-print-agent.exe"
+                  Arguments="--configure"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon.exe" />
+
+        <Shortcut Id="UninstallShortcut"
+                  Name="Desinstalar TPV Print Agent"
+                  Description="Desinstalar el agente de impresion"
+                  Target="[SystemFolder]msiexec.exe"
+                  Arguments="/x [ProductCode]" />
+
+        <RemoveFolder Id="CleanUpStartMenu" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\LMSC\TPVPrintAgent" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Desktop shortcut directory reference -->
+    <DirectoryRef Id="TARGETDIR">
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </DirectoryRef>
+
+    <!-- Startup shortcut for auto-start -->
+    <Component Id="StartupShortcut" Guid="D4E5F6A7-B8C9-0123-DEFA-456789012345" Directory="StartupFolder">
+      <Shortcut Id="StartupShortcut"
+                Name="TPV Print Agent"
+                Description="Iniciar agente de impresion automaticamente"
+                Target="[INSTALLFOLDER]tpv-print-agent.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon.exe" />
+      <RegistryValue Root="HKCU" Key="Software\LMSC\TPVPrintAgent" Name="autostart" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

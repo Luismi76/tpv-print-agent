@@ -1,0 +1,48 @@
+{
+  "name": "tpv-print-agent",
+  "version": "1.0.0",
+  "description": "Agente de impresión local para TPV SaaS - Conecta impresoras locales con el backend en la nube",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "configure": "node src/configure.js",
+    "build": "pkg . --targets node18-win-x64 --output dist/tpv-print-agent.exe",
+    "build:all": "pkg . --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output dist/tpv-print-agent",
+    "build:msi": "powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1",
+    "release": "npm run build && npm run build:msi"
+  },
+  "pkg": {
+    "assets": [
+      "config.json"
+    ],
+    "outputPath": "dist"
+  },
+  "keywords": [
+    "tpv",
+    "pos",
+    "print",
+    "escpos",
+    "thermal-printer",
+    "restaurant"
+  ],
+  "author": "LMSC",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "conf": "^10.2.0",
+    "escpos": "^3.0.0-alpha.6",
+    "escpos-network": "^3.0.0-alpha.4",
+    "escpos-usb": "^3.0.0-alpha.4",
+    "inquirer": "^8.2.6",
+    "ipp": "^1.1.0",
+    "node-notifier": "^10.0.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

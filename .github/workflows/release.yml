@@ -1,0 +1,164 @@
+# =============================================================================
+# TPV Print Agent - Release Workflow
+# =============================================================================
+# Genera releases automáticos con:
+# - Ejecutable portable (.exe)
+# - Instalador MSI (.msi)
+# - Release notes automáticas
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get version from tag or input
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Version: $version"
+
+      - name: Update package.json version
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json | ConvertFrom-Json
+          $pkg.version = "${{ steps.version.outputs.VERSION }}"
+          $pkg | ConvertTo-Json -Depth 10 | Set-Content package.json
+
+      - name: Build executable with pkg
+        run: npm run build
+
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          choco install wixtoolset -y
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: |
+          $WixPath = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+          if (-not (Test-Path $WixPath)) {
+            $WixPath = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          }
+
+          $env:Path += ";$WixPath"
+
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path installer\output
+
+          # Compile WXS
+          & "$WixPath\candle.exe" -nologo `
+            -out installer\output\Product.wixobj `
+            installer\wix\Product.wxs `
+            -ext WixUIExtension
+
+          # Link to create MSI
+          & "$WixPath\light.exe" -nologo `
+            -out "installer\output\TPV-Print-Agent-${{ steps.version.outputs.VERSION }}.msi" `
+            installer\output\Product.wixobj `
+            -ext WixUIExtension `
+            -cultures:es-ES
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          $zipName = "TPV-Print-Agent-${{ steps.version.outputs.VERSION }}-portable.zip"
+          Compress-Archive -Path dist\tpv-print-agent.exe, README.md -DestinationPath "installer\output\$zipName"
+
+      - name: Generate release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $notes = @"
+          ## TPV Print Agent v${{ steps.version.outputs.VERSION }}
+
+          ### Descargas
+
+          | Archivo | Descripcion |
+          |---------|-------------|
+          | **TPV-Print-Agent-${{ steps.version.outputs.VERSION }}.msi** | Instalador Windows (recomendado) |
+          | **TPV-Print-Agent-${{ steps.version.outputs.VERSION }}-portable.zip** | Version portable (sin instalacion) |
+
+          ### Instalacion
+
+          #### Opcion 1: Instalador MSI (Recomendado)
+          1. Descarga el archivo \`.msi\`
+          2. Ejecuta el instalador
+          3. Sigue el asistente de instalacion
+
+          #### Opcion 2: Version Portable
+          1. Descarga el archivo \`.zip\`
+          2. Extrae en cualquier carpeta
+          3. Ejecuta \`tpv-print-agent.exe\`
+
+          ### Requisitos
+          - Windows 10 o superior
+          - Conexion a Internet
+
+          ### Novedades
+          - Soporte para impresoras de red (ESC/POS)
+          - Soporte para impresoras USB
+          - Reconexion automatica
+          - Notificaciones de sistema
+
+          ---
+          Generado automaticamente por GitHub Actions
+          "@
+
+          # Write to file for the release action
+          $notes | Out-File -FilePath release_notes.md -Encoding utf8
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: TPV Print Agent v${{ steps.version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            installer/output/TPV-Print-Agent-${{ steps.version.outputs.VERSION }}.msi
+            installer/output/TPV-Print-Agent-${{ steps.version.outputs.VERSION }}-portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            installer/output/*.msi
+            installer/output/*.zip
+          retention-days: 30

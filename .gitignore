@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+installer/output/
+
+# Config files (contain credentials)
+config.json
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp files
+temp/
+*.tmp
+
+# WiX intermediate files
+*.wixobj
+*.wixpdb
