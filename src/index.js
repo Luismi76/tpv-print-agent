@@ -115,6 +115,15 @@ class PrintAgent {
             console.log(chalk.cyan(`\n📨 Mensaje recibido: ${message.type}`));
 
             switch (message.type) {
+                case 'CONNECTED':
+                    // Confirmación de conexión del servidor
+                    console.log(chalk.green(`✓ Servidor confirmó conexión: ${message.payload?.message || 'OK'}`));
+                    break;
+
+                case 'HEARTBEAT_ACK':
+                    // ACK del heartbeat - no hacer nada
+                    break;
+
                 case 'PRINT_JOB':
                     this.handlePrintJob(message.payload);
                     break;
