@@ -113,14 +113,14 @@ correctamente.
     }
 
     getStatus() {
+        // Devolver formato compatible con el frontend (campos en nivel raíz)
         return {
             name: this.name,
             type: this.type,
             connected: this.connected,
-            config: {
-                ip: this.config.ip,
-                port: this.config.port
-            }
+            default: this.config.default || false,
+            ip: this.config.ip,
+            port: this.config.port || 9100
         };
     }
 }
@@ -490,13 +490,13 @@ Gracias por su visita!
     }
 
     getStatus() {
+        // Devolver formato compatible con el frontend (campos en nivel raíz)
         return {
             name: this.name,
             type: this.type,
             connected: this.connected,
-            config: {
-                windowsName: this.windowsName
-            }
+            default: this.config.default || false,
+            windowsName: this.windowsName
         };
     }
 }
@@ -578,11 +578,13 @@ class PrinterManager {
     }
 
     /**
-     * Descubrir impresoras disponibles en el sistema Windows
+     * Descubrir impresoras disponibles (Windows + Red)
      * @returns {Promise<Array>} Lista de impresoras descubiertas
      */
     async discoverPrinters() {
         const discovered = [];
+
+        console.log(chalk.yellow('   Buscando impresoras...'));
 
         // 1. Descubrir impresoras de Windows
         try {
@@ -592,6 +594,119 @@ class PrinterManager {
             console.log(chalk.yellow(`   Error descubriendo impresoras Windows: ${error.message}`));
         }
 
+        // 2. Descubrir impresoras de red (ESC/POS en puerto 9100)
+        try {
+            const networkPrinters = await this.discoverNetworkPrinters();
+            discovered.push(...networkPrinters);
+        } catch (error) {
+            console.log(chalk.yellow(`   Error descubriendo impresoras de red: ${error.message}`));
+        }
+
+        return discovered;
+    }
+
+    /**
+     * Obtener la IP local del equipo
+     */
+    getLocalIP() {
+        const os = require('os');
+        const interfaces = os.networkInterfaces();
+
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                // Buscar IPv4, no loopback
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    return iface.address;
+                }
+            }
+        }
+        return '192.168.1.1'; // Fallback
+    }
+
+    /**
+     * Escanear un puerto en una IP específica
+     */
+    async scanPort(ip, port, timeout = 500) {
+        return new Promise((resolve) => {
+            const socket = new net.Socket();
+            socket.setTimeout(timeout);
+
+            socket.on('connect', () => {
+                socket.destroy();
+                resolve(true);
+            });
+
+            socket.on('timeout', () => {
+                socket.destroy();
+                resolve(false);
+            });
+
+            socket.on('error', () => {
+                socket.destroy();
+                resolve(false);
+            });
+
+            socket.connect(port, ip);
+        });
+    }
+
+    /**
+     * Descubrir impresoras de red ESC/POS en la subred local
+     * Escanea puertos 9100-9102 (puertos estándar de impresoras térmicas)
+     */
+    async discoverNetworkPrinters() {
+        const discovered = [];
+        const localIP = this.getLocalIP();
+        const subnet = localIP.split('.').slice(0, 3).join('.');
+
+        console.log(chalk.gray(`   Escaneando red ${subnet}.0/24...`));
+
+        // Puertos comunes de impresoras térmicas
+        const ports = [9100, 9101, 9102];
+
+        // Escanear en paralelo pero limitado
+        const scanPromises = [];
+
+        for (let i = 1; i <= 254; i++) {
+            const ip = `${subnet}.${i}`;
+
+            for (const port of ports) {
+                scanPromises.push(
+                    this.scanPort(ip, port, 300).then(isOpen => {
+                        if (isOpen) {
+                            return { ip, port };
+                        }
+                        return null;
+                    })
+                );
+            }
+        }
+
+        // Ejecutar en lotes para no saturar
+        const batchSize = 100;
+        const results = [];
+
+        for (let i = 0; i < scanPromises.length; i += batchSize) {
+            const batch = scanPromises.slice(i, i + batchSize);
+            const batchResults = await Promise.all(batch);
+            results.push(...batchResults.filter(r => r !== null));
+        }
+
+        // Convertir resultados a formato de impresora
+        for (const result of results) {
+            discovered.push({
+                name: `Térmica ${result.ip}:${result.port}`,
+                type: 'network',
+                ip: result.ip,
+                port: result.port,
+                available: true,
+                suggestedName: result.port === 9100 ? 'Impresora' :
+                               result.port === 9101 ? 'Cocina' :
+                               result.port === 9102 ? 'Barra' : `Puerto ${result.port}`
+            });
+        }
+
+        console.log(chalk.gray(`   Encontradas ${discovered.length} impresoras de red`));
         return discovered;
     }
 

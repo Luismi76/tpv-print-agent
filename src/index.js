@@ -238,15 +238,19 @@ class PrintAgent {
         }
     }
 
-    handleConfigUpdate(newConfig) {
+    async handleConfigUpdate(newConfig) {
         console.log(chalk.yellow('Actualizando configuración...'));
 
         if (newConfig.printers) {
             this.config.updatePrinters(newConfig.printers);
-            this.printerManager.initialize(newConfig.printers);
+            // IMPORTANTE: Esperar a que la inicialización termine antes de enviar estado
+            await this.printerManager.initialize(newConfig.printers);
         }
 
         console.log(chalk.green('✓ Configuración actualizada'));
+
+        // Enviar estado actualizado al servidor para que refleje las nuevas impresoras
+        this.sendPrinterStatus();
     }
 
     async handleDiscoverPrinters(payload) {
