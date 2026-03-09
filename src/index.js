@@ -13,6 +13,8 @@
 
 const WebSocket = require('ws');
 const chalk = require('chalk');
+const https = require('https');
+const http = require('http');
 const notifier = require('node-notifier');
 const { PrinterManager } = require('./printer-manager');
 const { ConfigManager } = require('./config-manager');
@@ -24,6 +26,70 @@ console.log(chalk.cyan(`
 ║   Agente de impresión para restaurantes    ║
 ╚════════════════════════════════════════════╝
 `));
+
+/**
+ * Configura el agente automáticamente usando un token temporal.
+ * Uso: tpv-print-agent --setup TOKEN --url https://bar-api.lmsc.es/api
+ */
+async function autoSetup(token, baseUrl) {
+    const setupUrl = `${baseUrl}/print-agent/setup/${token}`;
+    console.log(chalk.yellow(`Obteniendo configuración desde ${baseUrl}...`));
+
+    return new Promise((resolve, reject) => {
+        const client = setupUrl.startsWith('https') ? https : http;
+        client.get(setupUrl, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`Error ${res.statusCode}: ${body}`));
+                    return;
+                }
+                try {
+                    resolve(JSON.parse(body));
+                } catch (e) {
+                    reject(new Error('Respuesta inválida del servidor'));
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
+// Comprobar si se ejecuta con --setup
+async function checkSetupMode() {
+    const args = process.argv.slice(2);
+    const setupIdx = args.indexOf('--setup');
+    if (setupIdx === -1) return false;
+
+    const token = args[setupIdx + 1];
+    const urlIdx = args.indexOf('--url');
+    const baseUrl = urlIdx !== -1 ? args[urlIdx + 1] : null;
+
+    if (!token || !baseUrl) {
+        console.log(chalk.red('Uso: tpv-print-agent --setup TOKEN --url https://bar-api.lmsc.es/api'));
+        process.exit(1);
+    }
+
+    try {
+        const config = await autoSetup(token, baseUrl);
+        const configManager = new ConfigManager();
+        configManager.updateSettings({
+            serverUrl: config.serverUrl,
+            restaurantId: config.restaurantId,
+            apiKey: config.apiKey,
+        });
+
+        console.log(chalk.green(`\n✓ Configuración guardada correctamente`));
+        console.log(chalk.gray(`  Servidor: ${config.serverUrl}`));
+        console.log(chalk.gray(`  Restaurante: ${config.nombre} (ID: ${config.restaurantId})`));
+        console.log(chalk.green(`\nEl agente se iniciará automáticamente.\n`));
+        return true;
+    } catch (error) {
+        console.error(chalk.red(`\n✗ Error de setup: ${error.message}`));
+        console.log(chalk.yellow('Comprueba que el token no haya expirado (validez: 10 min).'));
+        process.exit(1);
+    }
+}
 
 class PrintAgent {
     constructor() {
@@ -44,8 +110,8 @@ class PrintAgent {
 
         if (!settings.serverUrl || !settings.restaurantId || !settings.apiKey) {
             console.log(chalk.red('\n⚠️  Configuración incompleta.'));
-            console.log(chalk.yellow('Ejecuta: npm run configure'));
-            console.log(chalk.yellow('O edita el archivo config.json\n'));
+            console.log(chalk.yellow('Ejecuta: tpv-print-agent --setup TOKEN --url https://tu-api.lmsc.es/api'));
+            console.log(chalk.yellow('Genera el token desde Configuración > Impresoras en la web.\n'));
             process.exit(1);
         }
 
@@ -372,9 +438,11 @@ class PrintAgent {
     }
 }
 
-// Iniciar agente
-const agent = new PrintAgent();
-agent.start().catch(error => {
-    console.error(chalk.red('Error fatal:'), error);
-    process.exit(1);
+// Iniciar agente (con soporte para --setup automático)
+checkSetupMode().then(() => {
+    const agent = new PrintAgent();
+    agent.start().catch(error => {
+        console.error(chalk.red('Error fatal:'), error);
+        process.exit(1);
+    });
 });
