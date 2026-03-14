@@ -132,10 +132,10 @@ jobs:
           - Conexion a Internet
 
           ### Novedades
-          - Soporte para impresoras de red (ESC/POS)
-          - Soporte para impresoras USB
-          - Reconexion automatica
-          - Notificaciones de sistema
+          - Setup en un clic: enlace de protocolo \`tpv-print-agent://\` desde el navegador
+          - Setup via fichero \`.tpv-setup\` descargable (doble clic)
+          - Comando manual de setup (compatible con versiones anteriores)
+          - Metadatos de version y autor en el ejecutable de Windows
 
           ---
           Generado automaticamente por GitHub Actions

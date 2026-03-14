@@ -19,12 +19,14 @@ const fs = require('fs');
 const notifier = require('node-notifier');
 const { PrinterManager } = require('./printer-manager');
 const { ConfigManager } = require('./config-manager');
+const { version, author } = require('../package.json');
 
 // Banner
 console.log(chalk.cyan(`
 ╔════════════════════════════════════════════╗
-║         TPV Print Agent v1.0.0             ║
+║       TPV Print Agent v${version.padEnd(18)}║
 ║   Agente de impresión para restaurantes    ║
+║   ${author.padEnd(39)}║
 ╚════════════════════════════════════════════╝
 `));
 
@@ -437,7 +439,7 @@ class PrintAgent {
         this.sendMessage({
             type: 'AGENT_STATUS',
             payload: {
-                version: '1.0.0',
+                version,
                 platform: process.platform,
                 printers: printers,
                 timestamp: Date.now()
