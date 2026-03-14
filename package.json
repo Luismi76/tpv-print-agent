@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "configure": "node src/configure.js",
-    "build": "pkg . --targets node18-win-x64 --output dist/tpv-print-agent.exe && node scripts/stamp-exe.js",
+    "build": "pkg . --targets node18-win-x64 --output dist/tpv-print-agent.exe",
     "build:all": "pkg . --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output dist/tpv-print-agent",
     "build:msi": "powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1",
     "release": "npm run build && npm run build:msi"
@@ -42,8 +42,7 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
-    "pkg": "^5.8.1",
-    "rcedit": "^4.0.1"
+    "pkg": "^5.8.1"
   },
   "engines": {
     "node": ">=18.0.0"
