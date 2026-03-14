@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "pkg": "^5.8.1",
-    "rcedit": "^5.0.2"
+    "rcedit": "^4.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
