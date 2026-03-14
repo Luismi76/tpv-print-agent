@@ -16,10 +16,42 @@ const chalk = require('chalk');
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
 const notifier = require('node-notifier');
 const { PrinterManager } = require('./printer-manager');
 const { ConfigManager } = require('./config-manager');
-const { version, author } = require('../package.json');
+
+// Leer versión y autor de package.json (compatible con pkg)
+let version = '1.2.0';
+let author = 'Luis Miguel Santana Castaño';
+try {
+    const pkg = require('../package.json');
+    version = pkg.version || version;
+    author = pkg.author || author;
+} catch {
+    // En exe empaquetado, intentar ruta alternativa
+    try {
+        const pkgPath = path.join(path.dirname(process.execPath), 'package.json');
+        if (fs.existsSync(pkgPath)) {
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+            version = pkg.version || version;
+            author = pkg.author || author;
+        }
+    } catch { /* usar valores por defecto */ }
+}
+
+/**
+ * Espera a que el usuario pulse Enter antes de cerrar la ventana.
+ * Solo aplica cuando se ejecuta como exe (no en terminal interactiva).
+ */
+function waitBeforeExit(code = 1) {
+    console.log(chalk.gray('\nPulsa Enter para cerrar...'));
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.on('line', () => { rl.close(); process.exit(code); });
+    // Si stdin no es interactivo (pipe), salir directamente tras 30s
+    setTimeout(() => process.exit(code), 30000);
+}
 
 // Banner
 console.log(chalk.cyan(`
@@ -118,7 +150,7 @@ async function executeSetup(token, baseUrl) {
     } catch (error) {
         console.error(chalk.red(`\n✗ Error de setup: ${error.message}`));
         console.log(chalk.yellow('Comprueba que el token no haya expirado (validez: 10 min).'));
-        process.exit(1);
+        return waitBeforeExit();
     }
 }
 
@@ -139,11 +171,11 @@ async function checkSetupMode() {
         const filePath = args[setupFileIdx + 1];
         if (!filePath) {
             console.log(chalk.red('Uso: tpv-print-agent --setup-file "ruta/fichero.tpv-setup"'));
-            process.exit(1);
+            return waitBeforeExit();
         }
         console.log(chalk.yellow(`Setup via fichero: ${filePath}`));
         const fileData = readSetupFile(filePath);
-        if (!fileData) process.exit(1);
+        if (!fileData) return waitBeforeExit();
         return executeSetup(fileData.token, fileData.url);
     }
 
@@ -157,7 +189,7 @@ async function checkSetupMode() {
 
     if (!token || !baseUrl) {
         console.log(chalk.red('Uso: tpv-print-agent --setup TOKEN --url https://bar-api.lmsc.es/api'));
-        process.exit(1);
+        return waitBeforeExit();
     }
 
     return executeSetup(token, baseUrl);
@@ -184,7 +216,7 @@ class PrintAgent {
             console.log(chalk.red('\n⚠️  Configuración incompleta.'));
             console.log(chalk.yellow('Ejecuta: tpv-print-agent --setup TOKEN --url https://tu-api.lmsc.es/api'));
             console.log(chalk.yellow('Genera el token desde Configuración > Impresoras en la web.\n'));
-            process.exit(1);
+            return waitBeforeExit();
         }
 
         console.log(chalk.gray(`Servidor: ${settings.serverUrl}`));
@@ -515,6 +547,9 @@ checkSetupMode().then(() => {
     const agent = new PrintAgent();
     agent.start().catch(error => {
         console.error(chalk.red('Error fatal:'), error);
-        process.exit(1);
+        waitBeforeExit();
     });
+}).catch(error => {
+    console.error(chalk.red('Error inesperado:'), error);
+    waitBeforeExit();
 });
