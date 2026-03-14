@@ -10,10 +10,10 @@ Agente de impresión local para el sistema TPV SaaS. Permite conectar impresoras
 
 **[Descargar ultima version](https://github.com/Luismi76/tpv-print-agent/releases/latest)**
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `TPV-Print-Agent-X.X.X.msi` | Instalador Windows (recomendado) |
-| `TPV-Print-Agent-X.X.X-portable.zip` | Version portable |
+| Archivo                              | Descripcion                      |
+| ------------------------------------ | -------------------------------- |
+| `TPV-Print-Agent-X.X.X.msi`          | Instalador Windows (recomendado) |
+| `TPV-Print-Agent-X.X.X-portable.zip` | Version portable                 |
 
 ## Arquitectura
 
@@ -73,6 +73,7 @@ Al ejecutar por primera vez, el asistente te pedirá:
 ### Ejemplo de configuración manual
 
 El archivo de configuración se encuentra en:
+
 - Windows: `%APPDATA%\tpv-print-agent\config.json`
 - Linux/Mac: `~/.config/tpv-print-agent/config.json`
 
@@ -105,16 +106,17 @@ El archivo de configuración se encuentra en:
 
 La mayoría de impresoras térmicas profesionales soportan conexión por red:
 
-| Marca | Modelos | Puerto |
-|-------|---------|--------|
-| Epson | TM-T88V, TM-T88VI, TM-T20III | 9100 |
-| Star | TSP100, TSP650, mC-Print | 9100 |
-| Bixolon | SRP-350, SRP-380 | 9100 |
-| Citizen | CT-S310II, CT-E351 | 9100 |
+| Marca   | Modelos                      | Puerto |
+| ------- | ---------------------------- | ------ |
+| Epson   | TM-T88V, TM-T88VI, TM-T20III | 9100   |
+| Star    | TSP100, TSP650, mC-Print     | 9100   |
+| Bixolon | SRP-350, SRP-380             | 9100   |
+| Citizen | CT-S310II, CT-E351           | 9100   |
 
 ### Impresoras USB
 
 Para impresoras USB, se requiere:
+
 - Driver de la impresora instalado
 - Zadig (para libusb en Windows)
 

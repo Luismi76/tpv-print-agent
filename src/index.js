@@ -15,6 +15,7 @@ const WebSocket = require('ws');
 const chalk = require('chalk');
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
 const notifier = require('node-notifier');
 const { PrinterManager } = require('./printer-manager');
 const { ConfigManager } = require('./config-manager');
@@ -55,21 +56,42 @@ async function autoSetup(token, baseUrl) {
     });
 }
 
-// Comprobar si se ejecuta con --setup
-async function checkSetupMode() {
-    const args = process.argv.slice(2);
-    const setupIdx = args.indexOf('--setup');
-    if (setupIdx === -1) return false;
+/**
+ * Parsea una URL de protocolo custom: tpv-print-agent://setup?token=X&url=Y
+ * Retorna { token, url } o null si no es una URL de protocolo válida.
+ */
+function parseProtocolUrl(arg) {
+    if (!arg || !arg.startsWith('tpv-print-agent://')) return null;
+    try {
+        // URL API no soporta protocolos custom, reemplazar para parsear
+        const fakeUrl = arg.replace('tpv-print-agent://', 'http://localhost/');
+        const parsed = new URL(fakeUrl);
+        const token = parsed.searchParams.get('token');
+        const url = parsed.searchParams.get('url');
+        if (token && url) return { token, url };
+    } catch { /* URL mal formada */ }
+    return null;
+}
 
-    const token = args[setupIdx + 1];
-    const urlIdx = args.indexOf('--url');
-    const baseUrl = urlIdx !== -1 ? args[urlIdx + 1] : null;
-
-    if (!token || !baseUrl) {
-        console.log(chalk.red('Uso: tpv-print-agent --setup TOKEN --url https://bar-api.lmsc.es/api'));
-        process.exit(1);
+/**
+ * Lee un fichero .tpv-setup (JSON con { token, url })
+ */
+function readSetupFile(filePath) {
+    try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(content);
+        if (data.token && data.url) return data;
+        console.log(chalk.red('El fichero .tpv-setup no contiene "token" y "url".'));
+    } catch (error) {
+        console.error(chalk.red(`Error leyendo fichero de setup: ${error.message}`));
     }
+    return null;
+}
 
+/**
+ * Ejecuta el setup con token y URL, guarda la configuración.
+ */
+async function executeSetup(token, baseUrl) {
     try {
         const config = await autoSetup(token, baseUrl);
         const configManager = new ConfigManager();
@@ -83,12 +105,60 @@ async function checkSetupMode() {
         console.log(chalk.gray(`  Servidor: ${config.serverUrl}`));
         console.log(chalk.gray(`  Restaurante: ${config.nombre} (ID: ${config.restaurantId})`));
         console.log(chalk.green(`\nEl agente se iniciará automáticamente.\n`));
+
+        notifier.notify({
+            title: 'TPV Print Agent',
+            message: `Configurado: ${config.nombre}`,
+            icon: 'info'
+        });
+
         return true;
     } catch (error) {
         console.error(chalk.red(`\n✗ Error de setup: ${error.message}`));
         console.log(chalk.yellow('Comprueba que el token no haya expirado (validez: 10 min).'));
         process.exit(1);
     }
+}
+
+// Comprobar si se ejecuta con --setup, --setup-file, o URL de protocolo
+async function checkSetupMode() {
+    const args = process.argv.slice(2);
+
+    // 1. URL de protocolo: tpv-print-agent://setup?token=X&url=Y
+    const protocolData = parseProtocolUrl(args[0]);
+    if (protocolData) {
+        console.log(chalk.yellow('Setup via enlace de protocolo...'));
+        return executeSetup(protocolData.token, protocolData.url);
+    }
+
+    // 2. Fichero .tpv-setup: --setup-file "ruta/fichero.tpv-setup"
+    const setupFileIdx = args.indexOf('--setup-file');
+    if (setupFileIdx !== -1) {
+        const filePath = args[setupFileIdx + 1];
+        if (!filePath) {
+            console.log(chalk.red('Uso: tpv-print-agent --setup-file "ruta/fichero.tpv-setup"'));
+            process.exit(1);
+        }
+        console.log(chalk.yellow(`Setup via fichero: ${filePath}`));
+        const fileData = readSetupFile(filePath);
+        if (!fileData) process.exit(1);
+        return executeSetup(fileData.token, fileData.url);
+    }
+
+    // 3. Modo clásico: --setup TOKEN --url URL
+    const setupIdx = args.indexOf('--setup');
+    if (setupIdx === -1) return false;
+
+    const token = args[setupIdx + 1];
+    const urlIdx = args.indexOf('--url');
+    const baseUrl = urlIdx !== -1 ? args[urlIdx + 1] : null;
+
+    if (!token || !baseUrl) {
+        console.log(chalk.red('Uso: tpv-print-agent --setup TOKEN --url https://bar-api.lmsc.es/api'));
+        process.exit(1);
+    }
+
+    return executeSetup(token, baseUrl);
 }
 
 class PrintAgent {

@@ -98,6 +98,22 @@
         <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="no" Part="last" Action="set" System="yes" />
         <RegistryValue Root="HKLM" Key="Software\LMSC\TPVPrintAgent" Name="pathAdded" Type="integer" Value="1" KeyPath="yes" />
       </Component>
+
+      <!-- Protocol handler: tpv-print-agent://setup?token=X&url=Y -->
+      <Component Id="ProtocolHandler" Guid="F6A7B8C9-D0E1-2345-FABC-678901234567">
+        <RegistryValue Root="HKCR" Key="tpv-print-agent" Value="URL:TPV Print Agent Protocol" Type="string" />
+        <RegistryValue Root="HKCR" Key="tpv-print-agent" Name="URL Protocol" Value="" Type="string" />
+        <RegistryValue Root="HKCR" Key="tpv-print-agent\DefaultIcon" Value="[INSTALLFOLDER]tpv-print-agent.exe,0" Type="string" />
+        <RegistryValue Root="HKCR" Key="tpv-print-agent\shell\open\command" Value="&quot;[INSTALLFOLDER]tpv-print-agent.exe&quot; &quot;%1&quot;" Type="string" KeyPath="yes" />
+      </Component>
+
+      <!-- File association: .tpv-setup -->
+      <Component Id="FileAssociation" Guid="A7B8C9D0-E1F2-3456-ABCD-789012345678">
+        <RegistryValue Root="HKCR" Key=".tpv-setup" Value="TPVPrintAgent.SetupFile" Type="string" />
+        <RegistryValue Root="HKCR" Key="TPVPrintAgent.SetupFile" Value="TPV Print Agent Setup File" Type="string" />
+        <RegistryValue Root="HKCR" Key="TPVPrintAgent.SetupFile\DefaultIcon" Value="[INSTALLFOLDER]tpv-print-agent.exe,0" Type="string" />
+        <RegistryValue Root="HKCR" Key="TPVPrintAgent.SetupFile\shell\open\command" Value="&quot;[INSTALLFOLDER]tpv-print-agent.exe&quot; --setup-file &quot;%1&quot;" Type="string" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
 
     <!-- Start Menu shortcuts -->
