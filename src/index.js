@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+
+// Capturar errores ANTES de cualquier require para que la ventana no se cierre
+process.on('uncaughtException', (err) => {
+    try { console.error('\n[ERROR FATAL]', err.message || err); } catch {}
+    setTimeout(() => process.exit(1), 60000);
+});
+process.on('unhandledRejection', (err) => {
+    try { console.error('\n[ERROR]', err.message || err); } catch {}
+    setTimeout(() => process.exit(1), 60000);
+});
+
 /**
  * TPV Print Agent
  * ===============
@@ -17,7 +28,6 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 const notifier = require('node-notifier');
 const { PrinterManager } = require('./printer-manager');
 const { ConfigManager } = require('./config-manager');
@@ -42,15 +52,11 @@ try {
 }
 
 /**
- * Espera a que el usuario pulse Enter antes de cerrar la ventana.
- * Solo aplica cuando se ejecuta como exe (no en terminal interactiva).
+ * Mantiene la ventana abierta 60s para que el usuario pueda leer el error.
  */
 function waitBeforeExit(code = 1) {
-    console.log(chalk.gray('\nPulsa Enter para cerrar...'));
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.on('line', () => { rl.close(); process.exit(code); });
-    // Si stdin no es interactivo (pipe), salir directamente tras 30s
-    setTimeout(() => process.exit(code), 30000);
+    console.log(chalk.gray('\nLa ventana se cerrará en 60 segundos...'));
+    setTimeout(() => process.exit(code), 60000);
 }
 
 // Banner
