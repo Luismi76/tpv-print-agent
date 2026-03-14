@@ -42,8 +42,8 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
-    "@electron/rcedit": "^4.0.1",
-    "pkg": "^5.8.1"
+    "pkg": "^5.8.1",
+    "rcedit": "^5.0.2"
   },
   "engines": {
     "node": ">=18.0.0"

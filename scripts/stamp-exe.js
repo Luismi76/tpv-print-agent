@@ -2,7 +2,7 @@
  * Estampa metadatos de Windows (versión, autor, copyright) en el exe generado por pkg.
  * Se ejecuta automáticamente después de `npm run build`.
  */
-const rcedit = require('@electron/rcedit');
+const rcedit = require('rcedit');
 const pkg = require('../package.json');
 
 async function stamp() {
