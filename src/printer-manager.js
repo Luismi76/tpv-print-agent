@@ -865,6 +865,16 @@ class PrinterManager {
                     return printer;
                 }
             }
+
+            // 3) Impresora de red AD-HOC: el nombre lleva IP:puerto pero no hay
+            //    ninguna configurada que case. Para impresoras térmicas ESC/POS
+            //    basta con abrir un socket a esa IP:puerto, así que creamos una
+            //    NetworkPrinter al vuelo y mandamos el trabajo directamente.
+            //    Evita el "Impresora no encontrada" cuando la impresora existe en
+            //    la red pero no está dada de alta en el config.json del agente.
+            console.log(chalk.yellow(
+                `   ↪ "${name}" no está en config; usando impresora de red ad-hoc ${target.ip}:${target.port}`));
+            return new NetworkPrinter({ name, type: 'network', ip: target.ip, port: target.port });
         }
 
         return undefined;
