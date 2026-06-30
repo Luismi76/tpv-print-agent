@@ -1,6 +1,6 @@
 {
   "name": "tpv-print-agent",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Agente de impresión local para TPV SaaS - Conecta impresoras locales con el backend en la nube",
   "main": "src/index.js",
   "bin": "src/index.js",
