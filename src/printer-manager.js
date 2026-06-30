@@ -843,7 +843,42 @@ class PrinterManager {
         if (!name || name === 'default') {
             return this.defaultPrinter;
         }
-        return this.printers.get(name);
+
+        // 1) Coincidencia exacta por nombre (caso normal: printAgentName == config.name)
+        const exact = this.printers.get(name);
+        if (exact) return exact;
+
+        // 2) Fallback por IP:puerto. El backend, cuando la impresora no tiene
+        //    printAgentName configurado, envía como nombre el de la BD, que suele
+        //    incluir la dirección (p.ej. "Térmica 169.254.83.107:9100"). Si ese
+        //    nombre no casa por texto, intentamos casar por la IP:puerto que
+        //    contenga contra las impresoras de red/IPP configuradas.
+        const target = this._parseEndpoint(name);
+        if (target) {
+            for (const printer of this.printers.values()) {
+                const ip = printer.ip || (printer.config && printer.config.ip);
+                if (!ip) continue; // windows/usb no tienen IP
+                const port = Number(printer.port || (printer.config && printer.config.port) || 9100);
+                if (String(ip) === target.ip && port === target.port) {
+                    console.log(chalk.yellow(
+                        `   ↪ "${name}" no está por nombre; casada por IP ${target.ip}:${target.port} → "${printer.name}"`));
+                    return printer;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Extrae { ip, port } de un texto que contenga una IPv4 con puerto opcional,
+     * p.ej. "Térmica 169.254.83.107:9100" → { ip: '169.254.83.107', port: 9100 }.
+     * Puerto por defecto 9100 (ESC/POS) si el texto no lo incluye.
+     */
+    _parseEndpoint(str) {
+        const m = String(str).match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::(\d{1,5}))?/);
+        if (!m) return null;
+        return { ip: m[1], port: m[2] ? Number(m[2]) : 9100 };
     }
 
     getStatus() {
